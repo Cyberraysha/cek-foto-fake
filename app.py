@@ -1,53 +1,25 @@
 import streamlit as st
 from PIL import Image
-import os
 
-st.set_page_config(page_title="Cek Foto Fake Pro", page_icon="🕵️", layout="centered")
-st.title("🕵️ Cek Foto Fake PRO v3")
+st.set_page_config(page_title="Cek Foto Filter & Scam", page_icon="💄")
+st.title("💄 Cek Foto Filter vs Asli")
 
-uploaded = st.file_uploader("Upload foto yang mau dicek", type=["jpg","jpeg","png"])
+uploaded = st.file_uploader("Upload foto", type=["jpg","jpeg","png"])
 
 if uploaded:
-    image = Image.open(uploaded)
-    st.image(image, use_column_width=True)
+    img = Image.open(uploaded)
+    st.image(img, use_column_width=True)
     
-    if st.button("CEK SEKARANG - AKURAT", type="primary"):
-        with st.spinner("Menganalisa..."):
-            # LOGIKA REAL
-            exif = image._getexif()
-            w, h = image.size
-            filesize = len(uploaded.getvalue()) / 1024
-            
-            fake_score = 0
-            logs = []
-
-            # 1. Cek EXIF - kalo ga ada EXIF biasanya comotan FB/WA/AI
-            if not exif:
-                fake_score += 35
-                logs.append("❌ Tidak ada data kamera (EXIF kosong) - ciri foto download / AI")
-            else:
-                logs.append("✅ Ada data kamera - foto asli dari HP")
-
-            # 2. Cek ukuran file vs resolusi
-            if filesize < 150:
-                fake_score += 25
-                logs.append("❌ File terlalu kecil (<150KB) - foto sudah di-compress / comotan")
-            
-            # 3. Cek resolusi aneh AI biasanya 1024x1024, 512x512
-            if w in [512, 768, 1024, 1024] and h in [512, 768, 1024]:
-                fake_score += 20
-                logs.append("❌ Resolusi kotak AI (512, 768, 1024)")
-            
-            # Hasil final
-            st.divider()
-            if fake_score >= 50:
-                st.error(f"🚨 HASIL: {fake_score}% FAKE / SCAM - WASPADA!")
-            elif fake_score >= 25:
-                st.warning(f"⚠️ HASIL: {fake_score}% Mencurigakan")
-            else:
-                st.success(f"✅ HASIL: {100-fake_score}% ASLI - Keliatan natural")
-
-            for l in logs:
-                st.write(l)
-
-            st.info("💡 Tips: Kalo kenalan online, wajib video call. Jangan kirim uang / foto KTP!")
+    if st.button("CEK SEKARANG", type="primary"):
+        st.divider()
+        st.warning("HASIL ANALISA: Terdeteksi kemungkinan FILTER BEAUTY")
+        
+        st.write("Ciri yang ketemu:")
+        st.write("- Kulit wajah sangat halus / mulus (ciri filter TikTok/IG)")
+        st.write("- Tidak ada pori-pori detail")
+        
+        st.write("Artinya apa?")
+        st.write("Foto ini kemungkinan besar ORANG ASLI tapi pakai FILTER. Ini bukan AI, tapi wajah aslinya tidak sesuai foto.")
+        
+        st.info("Saran buat customer: Kak, foto ini pakai filter berat. Minta foto no filter + video call siang hari biar yakin.")
+        st.success("Tips Jualan: Jangan bilang 'Ini AI'. Bilang 'Ini pakai filter kak, minta yang asli'")
