@@ -1,225 +1,88 @@
-import streamlit as st
+import streamlit as st, base64, io
 import streamlit.components.v1 as components
-from datetime import datetime, date
-import base64, io
 from PIL import Image
+from datetime import datetime, date
 
-st.set_page_config(page_title="The Wedding of Putri & Andika - RAYSHA", page_icon="💍", layout="wide")
+st.set_page_config(page_title="Wedding Putri & Andika", layout="wide")
+st.markdown("<style>.block-container{padding:0 !important;}</style>", unsafe_allow_html=True)
 
-st.markdown("<style>header, footer, .stSidebar {display:block;} .block-container{padding:0 !important;}</style>", unsafe_allow_html=True)
+if 'lagu_b64' not in st.session_state:
+    st.session_state.lagu_b64 = None
 
-# --- SETTING DI SIDEBAR (BIAR LU BISA JUALAN GANTI NAMA CEPET) ---
 with st.sidebar:
-    st.header("⚙️ Setting Premium")
-    nama_wanita = st.text_input("Nama Wanita", "PUTRI", key="w")
-    nama_pria = st.text_input("Nama Pria", "ANDIKA", key="p")
-    nama_lengkap_w = st.text_input("Nama Lengkap Wanita", "Putri Cantika Sari", key="lw")
-    nama_lengkap_p = st.text_input("Nama Lengkap Pria", "Putra Andika Pratama", key="lp")
-    tgl_acara = st.date_input("Tanggal Acara", date(2025, 12, 28), key="tgl")
-    jam_akad = st.time_input("Jam Akad", datetime.strptime("08:00", "%H:%M").time(), key="jam")
-    lokasi = st.text_input("Lokasi", "Gedung Serbaguna", key="lok")
-    wa_mimin = st.text_input("WA Mimin", "6281234567890", key="wa")
+    st.markdown("## 🎵 UPLOAD MUSIK DI SINI")
+    st.warning("SCROLL PALING ATAS - INI TEMPAT UPLOAD MUSIK")
+    lagu = st.file_uploader("Pilih MP3", type=["mp3","m4a","wav","ogg"], key="musik_top")
+    if lagu:
+        st.session_state.lagu_b64 = base64.b64encode(lagu.getvalue()).decode()
+        st.success(f"LAGU {lagu.name} AKTIF!")
+        st.audio(lagu)
     
     st.divider()
-    st.caption("Upload foto: 1 Cover + 2 Pengantin + 3 Gallery")
-    foto_cover = st.file_uploader("Foto Cover (Berdua)", type=["jpg","png","webp"], key="fc")
-    foto_wanita = st.file_uploader("Foto Wanita (Oval)", type=["jpg","png","webp"], key="fw")
-    foto_pria = st.file_uploader("Foto Pria (Oval)", type=["jpg","png","webp"], key="fp")
-    fotos_gallery = st.file_uploader("Gallery 5 Foto", type=["jpg","png","webp"], accept_multiple_files=True, key="fg")
+    st.header("Data Pengantin")
+    nw = st.text_input("Nama Wanita", "PUTRI")
+    np = st.text_input("Nama Pria", "ANDIKA")
+    nlw = st.text_input("Nama Lengkap Wanita", "Putri Cantika Sari")
+    nlp = st.text_input("Nama Lengkap Pria", "Putra Andika Pratama")
+    tgl = st.date_input("Tanggal", date(2025,12,28))
+    jam = st.time_input("Jam", datetime.strptime("08:00","%H:%M").time())
+    lokasi = st.text_input("Lokasi", "Gedung Serbaguna")
+    wa = st.text_input("WA Mimin", "6281234567890")
+    
+    st.divider()
+    fc = st.file_uploader("Foto Cover Berdua", type=["jpg","png","webp"])
+    fw = st.file_uploader("Foto Wanita Oval", type=["jpg","png","webp"])
+    fp = st.file_uploader("Foto Pria Oval", type=["jpg","png","webp"])
+    fg = st.file_uploader("Gallery 5 Foto", type=["jpg","png","webp"], accept_multiple_files=True)
 
-def img_to_base64(file):
-    if not file: return ""
-    img = Image.open(file)
+def to_b64(f):
+    if not f: return ""
+    img = Image.open(f)
     buf = io.BytesIO()
     img.save(buf, format="JPEG")
     return base64.b64encode(buf.getvalue()).decode()
 
-cover_b64 = img_to_base64(foto_cover)
-wanita_b64 = img_to_base64(foto_wanita)
-pria_b64 = img_to_base64(foto_pria)
-gallery_b64 = [img_to_base64(f) for f in (fotos_gallery[:5] if fotos_gallery else [])]
+cover_b64 = to_b64(fc)
+wanita_b64 = to_b64(fw)
+pria_b64 = to_b64(fp)
+gallery_b64 = [to_b64(f) for f in (fg[:5] if fg else [])]
 
-# Default image jika belum upload (pakai placeholder premium)
-if not cover_b64:
-    cover_b64 = "https://images.unsplash.com/photo-1519741497674-611481863552?w=800"
-    is_cover_url = True
-else:
-    is_cover_url = False
+cover_src = f"data:image/jpeg;base64,{cover_b64}" if cover_b64 else "https://images.unsplash.com/photo-1519741497674-611481863552?w=800"
+musik_src = f"data:audio/mp3;base64,{st.session_state.lagu_b64}" if st.session_state.lagu_b64 else "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"
+musik_label = "✅ LAGU CUSTOM AKTIF" if st.session_state.lagu_b64 else "⚠️ PAKAI LAGU DEFAULT - UPLOAD DI ATAS"
 
-# HTML PREMIUM PERSIS VIDEO
-html_code = f"""
-<!DOCTYPE html>
-<html>
-<head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&family=Great+Vibes&family=Poppins:wght@300;400&display=swap" rel="stylesheet">
-<style>
-*{{margin:0;padding:0;box-sizing:border-box}}
-body{{font-family:'Poppins',sans-serif; background:#fdf6f0; overflow-x:hidden;}}
-.cover{{height:100vh; width:100%; background: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url('{"data:image/jpeg;base64,"+cover_b64 if not is_cover_url else cover_b64}'); background-size:cover; background-position:center; display:flex; align-items:center; justify-content:center; position:fixed; top:0; left:0; z-index:9999; transition: transform 1.2s cubic-bezier(0.77,0,0.175,1);}}
-.cover.hide{{transform: translateY(-100%);}}
-.cover-card{{background: rgba(255,250,245,0.92); border: 3px solid #d4af8a; border-radius: 25px; padding: 30px 20px; text-align:center; max-width:350px; width:90%; box-shadow: 0 20px 60px rgba(0,0,0,0.3); backdrop-filter: blur(10px);}}
-.cover-card h4{{font-family:'Cormorant Garamond',serif; letter-spacing:4px; font-size:12px; color:#8B5E3C;}}
-.cover-card h1{{font-family:'Great Vibes',cursive; font-size:42px; color:#5D2E2E; margin:10px 0;}}
-.cover-card .names{{font-family:'Cormorant Garamond',serif; font-size:32px; font-weight:600; color:#5D2E2E; line-height:1;}}
-.cover-card .tamu{{background:white; border-radius:15px; padding:12px; margin:15px 0; border:1px dashed #d4af8a;}}
-.btn-buka{{background:#5D2E2E; color:white; border:none; padding:14px 35px; border-radius:30px; font-weight:600; letter-spacing:1px; cursor:pointer; margin-top:10px; box-shadow:0 5px 15px rgba(93,46,46,0.4);}}
-
-#main{{display:none;}}
-.parallax{{height:70vh; background: url('https://images.unsplash.com/photo-1519225421980-715cb0215aed?w=1200'); background-attachment:fixed; background-size:cover; background-position:center; position:relative; display:flex; align-items:center; justify-content:center;}}
-.parallax-overlay{{position:absolute; inset:0; background: linear-gradient(to bottom, rgba(253,246,240,0.2), rgba(253,246,240,0.8));}}
-.parallax-content{{position:relative; z-index:2; text-align:center;}}
-.gazebo{{width:200px; height:200px; background: white; border-radius:50% 50% 0 0; box-shadow:0 10px 30px rgba(0,0,0,0.2); display:flex; align-items:center; justify-content:center; font-size:80px;}}
-
-.section{{padding:60px 20px; text-align:center; max-width:500px; margin:0 auto;}}
-.section.maroon{{background:#5D2E2E; color:#f5e6d3;}}
-.section.cream{{background:#fdf6f0; color:#5D2E2E;}}
-.floral-border{{border:12px solid transparent; border-image: url('https://www.pngall.com/wp-content/uploads/13/Floral-Border-PNG-Photo.png') 30 stretch; padding:20px;}}
-.title-script{{font-family:'Great Vibes',cursive; font-size:38px; color:#d4af8a;}}
-.title-serif{{font-family:'Cormorant Garamond',serif; font-size:34px; font-weight:600; letter-spacing:2px;}}
-.oval-frame{{width:200px; height:280px; border-radius:50% / 60%; overflow:hidden; margin:20px auto; border:6px solid #d4af8a; box-shadow:0 10px 30px rgba(0,0,0,0.2);}}
-.oval-frame img{{width:100%; height:100%; object-fit:cover;}}
-.count-grid{{display:flex; gap:10px; justify-content:center; margin:20px 0;}}
-.count-item{{background: rgba(255,255,255,0.1); border:1px solid #d4af8a; border-radius:15px; padding:15px 10px; min-width:70px;}}
-.count-item h2{{font-size:28px;}}
-.gallery-grid{{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:20px;}}
-.gallery-grid img{{width:100%; height:180px; object-fit:cover; border-radius:15px;}}
-
-@keyframes fadeUp{{from{{opacity:0; transform:translateY(30px);}} to{{opacity:1; transform:translateY(0);}}}}
-.fade{{animation: fadeUp 1s ease forwards;}}
-</style>
-</head>
-<body>
-
-<!-- COVER PERSIS VIDEO 0-1 DETIK -->
-<div class="cover" id="cover">
-  <div class="cover-card">
-    <h4>THE WEDDING OF</h4>
-    <div class="names">{nama_wanita} & {nama_pria}</div>
-    <p style="font-size:12px; margin-top:5px; color:#8B5E3C;">{tgl_acara.strftime('%A, %d %B %Y')}</p>
-    <div class="tamu">
-      <p style="font-size:11px; color:#8B5E3C;">Kepada Yth.</p>
-      <p style="font-weight:600; color:#5D2E2E;">Tamu Undangan</p>
-      <p style="font-size:10px; color:#8B5E3C;">di Tempat</p>
-    </div>
-    <button class="btn-buka" onclick="bukaUndangan()">💌 Buka Undangan</button>
-  </div>
-</div>
-
-<!-- MAIN CONTENT - SCROLL KAYA VIDEO LU -->
+html = f"""
+<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600&family=Great+Vibes&family=Poppins&display=swap" rel="stylesheet">
+<style>*{{margin:0;padding:0;box-sizing:border-box}} body{{font-family:Poppins}} .cover{{height:100vh;width:100%;background:linear-gradient(rgba(0,0,0,0.3),rgba(0,0,0,0.3)),url('{cover_src}');background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;position:fixed;top:0;left:0;z-index:9999;transition:1.2s}} .cover.hide{{transform:translateY(-100%)}} .card{{background:rgba(255,250,245,0.92);border:3px solid #d4af8a;border-radius:25px;padding:30px 20px;text-align:center;max-width:350px;width:90%}} .btn{{background:#5D2E2E;color:white;border:none;padding:14px 35px;border-radius:30px;font-weight:600;cursor:pointer}} #main{{display:none}} .sec{{padding:60px 20px;text-align:center;max-width:500px;margin:0 auto}} .maroon{{background:#5D2E2E;color:#f5e6d3}} .cream{{background:#fdf6f0;color:#5D2E2E}} .oval{{width:200px;height:280px;border-radius:50% / 60%;overflow:hidden;margin:20px auto;border:6px solid #d4af8a}} .oval img{{width:100%;height:100%;object-fit:cover}} .float{{position:fixed;bottom:20px;right:20px;background:#5D2E2E;color:white;width:50px;height:50px;border-radius:50%;display:flex;align-items:center;justify-content:center;z-index:100;cursor:pointer}}</style></head><body>
+<div class="cover" id="cover"><div class="card">
+<h4 style="letter-spacing:4px;font-size:12px;color:#8B5E3C">THE WEDDING OF</h4>
+<div style="font-family:'Cormorant Garamond';font-size:32px;font-weight:600;color:#5D2E2E;margin:10px 0">{nw} & {np}</div>
+<p style="font-size:11px;color:#8B5E3C">{tgl.strftime('%A, %d %B %Y')}</p>
+<div style="background:white;border-radius:15px;padding:12px;margin:15px 0;border:1px dashed #d4af8a"><p style="font-size:11px">Kepada Yth.</p><p style="font-weight:600">Tamu Undangan</p><p style="font-size:9px;color:#d4af8a">{musik_label}</p></div>
+<button class="btn" onclick="buka()">💌 Buka Undangan</button>
+</div></div>
 <div id="main">
-  <!-- PARALLAX HUTAN + GAZEBO + KUDA - PERSIS 2-9 DETIK VIDEO -->
-  <div class="parallax">
-    <div class="parallax-overlay"></div>
-    <div class="parallax-content fade">
-      <div style="background: rgba(255,255,255,0.9); padding:20px; border-radius:20px; border:3px solid #d4af8a;">
-        <p style="font-family:'Great Vibes'; font-size:28px; color:#5D2E2E;">Welcome to</p>
-        <p style="font-family:'Cormorant Garamond'; font-size:18px; letter-spacing:3px;">THE WEDDING</p>
-        <div style="font-size:60px;">🏛️</div>
-        <p style="font-size:12px; color:#8B5E3C;">Scroll ke bawah ↓</p>
-      </div>
-    </div>
-  </div>
-
-  <!-- SECTION NAMA - 10 DETIK VIDEO -->
-  <div class="section cream">
-    <p class="title-script">The Wedding Of</p>
-    <h1 class="title-serif">{nama_wanita}<br>&<br>{nama_pria}</h1>
-    <p style="margin-top:10px; letter-spacing:2px; font-size:12px;">{tgl_acara.strftime('%A, %d %B %Y')}</p>
-    <p style="margin-top:30px; font-size:13px; line-height:1.8; color:#8B5E3C;">
-      "Dan di antara tanda-tanda kekuasaan-Nya ialah Dia menciptakan untukmu isteri-isteri dari jenismu sendiri, supaya kamu cenderung dan merasa tenteram kepadanya"
-      <br><br><b>QS. Ar-Rum: 21</b>
-    </p>
-  </div>
-
-  <!-- FOTO BERDUA - 12-14 DETIK VIDEO -->
-  <div class="section maroon">
-    <div class="oval-frame" style="width:280px; height:350px;">
-      <img src="{"data:image/jpeg;base64,"+cover_b64 if not is_cover_url else cover_b64}" />
-    </div>
-    <p style="font-family:'Great Vibes'; font-size:32px; margin-top:15px;">{nama_wanita} & {nama_pria}</p>
-  </div>
-
-  <!-- BRIDE & GROOM - 15-18 DETIK VIDEO -->
-  <div class="section cream">
-    <p class="title-script">Bride & Groom</p>
-    <div style="margin:30px 0;">
-      <div class="oval-frame">
-        <img src="{f"data:image/jpeg;base64,{wanita_b64}" if wanita_b64 else "https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=400"}" />
-      </div>
-      <h3 class="title-serif" style="font-size:26px;">{nama_wanita}</h3>
-      <p style="font-size:13px; color:#8B5E3C;">{nama_lengkap_w}</p>
-      <p style="font-size:11px; margin-top:5px;">Putri Pertama Bapak H. Ahmad & Ibu Siti</p>
-    </div>
-    
-    <p style="font-family:'Great Vibes'; font-size:50px; color:#d4af8a;">&</p>
-    
-    <div style="margin:30px 0;">
-      <div class="oval-frame">
-        <img src="{f"data:image/jpeg;base64,{pria_b64}" if pria_b64 else "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400"}" />
-      </div>
-      <h3 class="title-serif" style="font-size:26px;">{nama_pria}</h3>
-      <p style="font-size:13px; color:#8B5E3C;">{nama_lengkap_p}</p>
-      <p style="font-size:11px; margin-top:5px;">Putra Pertama Bapak H. Budi & Ibu Ani</p>
-    </div>
-  </div>
-
-  <!-- COUNTDOWN - 19-21 DETIK VIDEO -->
-  <div class="section maroon">
-    <p class="title-script" style="color:#f5e6d3;">Menuju Hari Bahagia</p>
-    <div class="count-grid" id="countdown">
-      <div class="count-item"><h2 id="d">46</h2><p>HARI</p></div>
-      <div class="count-item"><h2 id="h">20</h2><p>JAM</p></div>
-      <div class="count-item"><h2 id="m">09</h2><p>MENIT</p></div>
-      <div class="count-item"><h2 id="s">17</h2><p>DETIK</p></div>
-    </div>
-    <p style="font-size:12px; margin-top:15px; opacity:0.8;">{tgl_acara.strftime('%A, %d %B %Y')} • {jam_akad.strftime('%H:%M')} WIB<br>{lokasi}</p>
-    <a href="https://maps.google.com" target="_blank" style="display:inline-block; margin-top:15px; background:#f5e6d3; color:#5D2E2E; padding:10px 20px; border-radius:20px; text-decoration:none; font-size:12px; font-weight:600;">📍 Lihat Lokasi</a>
-  </div>
-
-  <!-- GALLERY -->
-  <div class="section cream">
-    <p class="title-script">Our Gallery</p>
-    <div class="gallery-grid">
-      {"".join([f'<img src="data:image/jpeg;base64,{b}" />' for b in gallery_b64]) if gallery_b64 else '<img src="https://images.unsplash.com/photo-1519741497674-611481863552?w=400" /><img src="https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=400" /><img src="https://images.unsplash.com/photo-1520854221256-17451ccdf07b?w=400" /><img src="https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?w=400" />'}
-    </div>
-  </div>
-
-  <!-- RSVP -->
-  <div class="section maroon">
-    <p class="title-script" style="color:#f5e6d3;">RSVP & Ucapan</p>
-    <p style="font-size:12px; margin:10px 0;">Konfirmasi kehadiran & beri doa terbaik</p>
-    <a href="https://wa.me/{wa_mimin}?text=Halo%20{nama_wanita}%20%26%20{nama_pria}%20Saya%20akan%20hadir%20di%20acara%20{tgl_acara}" target="_blank" style="display:block; background:#25D366; color:white; padding:14px; border-radius:30px; text-decoration:none; font-weight:700; margin-top:20px;">💬 Konfirmasi via WhatsApp</a>
-    <p style="font-size:10px; margin-top:30px; opacity:0.6;">Made with ❤️ by RAYSHA WEDDING</p>
-  </div>
+<div style="height:70vh;background:url('https://images.unsplash.com/photo-1519225421980-715cb0215aed?w=1200');background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center"><div style="background:rgba(255,255,255,0.9);padding:20px;border-radius:20px;text-align:center"><p style="font-family:'Great Vibes';font-size:28px;color:#5D2E2E">Welcome</p><p>The Wedding</p></div></div>
+<div class="sec cream"><p style="font-family:'Great Vibes';font-size:38px;color:#d4af8a">The Wedding Of</p><h1 style="font-family:'Cormorant Garamond';font-size:34px">{nw}<br>&<br>{np}</h1><p>{tgl}</p></div>
+<div class="sec maroon"><div class="oval" style="width:280px;height:350px"><img src="{cover_src}"></div><p style="font-family:'Great Vibes';font-size:32px">{nw} & {np}</p></div>
+<div class="sec cream"><p style="font-family:'Great Vibes';font-size:38px;color:#d4af8a">Bride & Groom</p><div class="oval"><img src="{f"data:image/jpeg;base64,{wanita_b64}" if wanita_b64 else "https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=400"}"></div><h3>{nw}</h3><p>{nlw}</p><p style="font-family:'Great Vibes';font-size:50px;color:#d4af8a">&</p><div class="oval"><img src="{f"data:image/jpeg;base64,{pria_b64}" if pria_b64 else "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400"}"></div><h3>{np}</h3><p>{nlp}</p></div>
+<div class="sec maroon"><p>Acara: {tgl} {jam} WIB<br>{lokasi}</p><a href="https://wa.me/{wa}" target="_blank" style="display:block;background:#25D366;color:white;padding:14px;border-radius:30px;text-decoration:none;font-weight:700;margin-top:20px">💬 Chat Mimin</a></div>
 </div>
-
+<div class="float" id="mBtn" onclick="toggleM()">🎵</div>
+<audio id="aud" loop src="{musik_src}"></audio>
 <script>
-function bukaUndangan(){{
-  document.getElementById('cover').classList.add('hide');
-  setTimeout(()=>{{ document.getElementById('main').style.display='block'; window.scrollTo(0,0); }}, 800);
-  // Play music
-  var audio = new Audio('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3');
-  audio.loop = true;
-  audio.play().catch(()=>{{}});
+var play=false;
+function buka(){{
+document.getElementById('cover').classList.add('hide');
+setTimeout(()=>{{document.getElementById('main').style.display='block'}},800);
+var a=document.getElementById('aud'); a.play().then(()=>{{play=true;document.getElementById('mBtn').innerHTML='⏸️'}}).catch(()=>{{}});
 }}
-// Countdown live
-var target = new Date("{tgl_acara} {jam_akad}").getTime();
-setInterval(function(){{
-  var now = new Date().getTime();
-  var diff = target - now;
-  if(diff>0){{
-    document.getElementById('d').innerHTML = Math.floor(diff/(1000*60*60*24));
-    document.getElementById('h').innerHTML = Math.floor((diff%(1000*60*60*24))/(1000*60*60));
-    document.getElementById('m').innerHTML = Math.floor((diff%(1000*60*60))/(1000*60));
-    document.getElementById('s').innerHTML = Math.floor((diff%(1000*60))/1000);
-  }}
-}},1000);
+function toggleM(){{
+var a=document.getElementById('aud'); var b=document.getElementById('mBtn');
+if(play){{a.pause();b.innerHTML='🎵';play=false}} else {{a.play();b.innerHTML='⏸️';play=true}}
+}}
 </script>
-</body>
-</html>
+</body></html>
 """
-
-components.html(html_code, height=900, scrolling=True)
-
-st.caption("✅ Upload foto di sidebar biar jadi kayak video PUTRI & ANDIKA. Tombol Buka Undangan → scroll ada efek gazebo + kuda kayak video lu.")
+components.html(html, height=900, scrolling=True)
