@@ -1,105 +1,125 @@
 import streamlit as st
 from PIL import Image
-from datetime import date, datetime
+from datetime import datetime, date
 import datetime as dt
+import base64, io, time
+import streamlit.components.v1 as components
 
-st.set_page_config(page_title="Undangan Wedding 3&6", page_icon="💍", layout="centered")
-brand_name = "RAYSHA WEDDING"
+st.set_page_config(page_title="RAYSHA WEDDING - Auto Slide", page_icon="💍", layout="centered")
+
+if 'foto_list' not in st.session_state:
+    st.session_state.foto_list = []
+if 'lagu_data' not in st.session_state:
+    st.session_state.lagu_data = None
+if 'slide_idx' not in st.session_state:
+    st.session_state.slide_idx = 0
+
 st.markdown("""
 <style>
-.main-title { font-family: cursive; font-size: 48px; color: #d4af37; text-align: center; font-weight: bold; }
-.card { background: linear-gradient(180deg, #eef4ee 0%, #ffffff 100%); border-radius: 20px; padding: 20px; border: 2px solid #d4af37; }
-.count-box { background: #7a9a7a; color: white; border-radius: 12px; padding: 12px; text-align: center; }
+.main-title { font-family: 'Great Vibes', cursive; font-size: 60px; color: #d4af37; text-align: center; }
+.card { background: #fefaf5; border-radius: 20px; padding: 25px; border: 2px solid #d4af37; text-align: center; }
+.count-box { background: #7a9a7a; color: white; border-radius: 10px; padding: 12px; text-align: center; }
 </style>
 """, unsafe_allow_html=True)
 
-if 'slide_idx' not in st.session_state:
-    st.session_state.slide_idx = 0
-if "daftar_tamu" not in st.session_state:
-    st.session_state.daftar_tamu = []
-
-st.markdown(f'<p style="text-align:center; font-size:13px; letter-spacing:3px; color:#7a9a7a; font-weight:bold">{brand_name}</p>', unsafe_allow_html=True)
-st.markdown('<p class="main-title">Undangan Digital</p>', unsafe_allow_html=True)
+st.markdown('<p class="main-title">RAYSHA WEDDING</p>', unsafe_allow_html=True)
 
 with st.sidebar:
-    st.header("⚙️ Admin Jualan")
-    paket = st.radio("Pilih Paket Jualan:", ["BASIC - 3 Foto (200rb)", "PRO - 6 Foto (450rb)"])
-    nama1 = st.text_input("Nama Pria", "Imam")
-    nama2 = st.text_input("Nama Wanita", "Aisyah")
-    tgl = st.date_input("Tanggal", date(2026, 12, 20))
-    lokasi = st.text_input("Lokasi", "Gedung Al-Hikmah, Jakarta")
-    wa_client = st.text_input("WA Mempelai (penerima RSVP)", "6281234567890")
-    musik = st.file_uploader("Upload Musik (mp3)", type=["mp3","wav","m4a"])
-    max_foto = 3 if "BASIC" in paket else 6
-    st.info(f"Upload {max_foto} foto untuk paket ini")
-    fotos = st.file_uploader(f"Upload {max_foto} Foto Prewedding", type=["jpg","png","jpeg"], accept_multiple_files=True)
-    if fotos and len(fotos) > max_foto:
-        st.warning(f"Kepotong jadi {max_foto} foto ya bro")
-        fotos = fotos[:max_foto]
-    if st.button("Reset Slide"):
-        st.session_state.slide_idx = 0
+    st.header("⚙️ Setting Undangan")
+    nama_pria = st.text_input("Nama Pria", "Imam", key="nama_pria")
+    nama_wanita = st.text_input("Nama Wanita", "Raysya", key="nama_wanita")
+    tgl = st.date_input("Tanggal Acara", date(2026, 12, 20), key="tgl_acara")
+    jam = st.time_input("Jam Acara", dt.time(9,0), key="jam_acara")
+    lokasi = st.text_input("Lokasi", "Gedung Serbaguna, Jakarta", key="lokasi")
 
-if musik:
-    st.audio(musik, format="audio/mp3", autoplay=True, loop=True)
+    st.divider()
+    fotos = st.file_uploader("Upload 3 Foto Prewedding (auto slide)", type=["jpg","jpeg","png","webp"], accept_multiple_files=True, key="uploader_foto")
+    if fotos:
+        st.session_state.foto_list = fotos
 
+    lagu = st.file_uploader("Upload Lagu MP3", type=["mp3","wav"], key="uploader_lagu")
+    if lagu:
+        st.session_state.lagu_data = lagu
+
+# --- PREVIEW CARD ---
 st.markdown('<div class="card">', unsafe_allow_html=True)
-st.markdown(f'<p style="text-align:center; color:#7a9a7a; font-weight:bold">{paket}</p>', unsafe_allow_html=True)
 
-if fotos and len(fotos) > 0:
-    total = len(fotos)
-    idx = st.session_state.slide_idx % total
-    img = Image.open(fotos[idx])
-    st.image(img, use_container_width=True, caption=f"Foto {idx+1}/{total} - {nama1} & {nama2}")
-    col1, col2, col3 = st.columns([1,2,1])
-    if col1.button("⬅️ Prev"):
-        st.session_state.slide_idx = (idx - 1) % total
-        st.rerun()
-    col2.markdown(f"<p style='text-align:center'>Slide {idx+1}/{total}</p>", unsafe_allow_html=True)
-    if col3.button("Next ➡️"):
-        st.session_state.slide_idx = (idx + 1) % total
-        st.rerun()
-    st.progress((idx+1)/total)
-    if paket.startswith("PRO"):
-        st.success(f"PRO: {total} foto = Video {total*3} detik, bisa export MP4")
-    else:
-        st.caption(f"BASIC: {total} foto = Video {total*3} detik")
+# --- FIX AUTO SLIDE YANG BENERAN JALAN ---
+foto_to_show = st.session_state.foto_list
+
+if foto_to_show and len(foto_to_show) > 0:
+    # Bikin base64 semua foto
+    b64_images = []
+    for f in foto_to_show[:5]:
+        img = Image.open(f)
+        buf = io.BytesIO()
+        img.save(buf, format="JPEG")
+        b64 = base64.b64encode(buf.getvalue()).decode()
+        b64_images.append(b64)
+
+    # Ini HTML slider yang jalan otomatis - pake components.html biar JS nya gak ke-block
+    b64_js_array = str(b64_images) # jadi list string
+    slider_html = f"""
+    <html>
+    <head>
+    <style>
+    .slideshow {{ position: relative; width: 100%; height: 400px; border-radius: 20px; overflow: hidden; }}
+    .slideshow img {{ width: 100%; height: 400px; object-fit: cover; position: absolute; top:0; left:0; opacity:0; transition: opacity 1s ease-in-out; border-radius: 20px; }}
+    .slideshow img.active {{ opacity:1; }}
+    .dots {{ text-align:center; margin-top: 10px; }}
+    .dot {{ height: 10px; width: 10px; margin: 0 4px; background-color: #ddd; border-radius: 50%; display: inline-block; transition: background-color 0.6s ease; }}
+    .dot.active {{ background-color: #d4af37; }}
+    </style>
+    </head>
+    <body>
+    <div class="slideshow" id="slideshow">
+        {''.join([f'<img src="data:image/jpeg;base64,{b}" id="img{i}">' for i,b in enumerate(b64_images)])}
+    </div>
+    <div class="dots" id="dots">
+        {''.join([f'<span class="dot" id="dot{i}"></span>' for i in range(len(b64_images))])}
+    </div>
+    <script>
+    let current = 0;
+    const imgs = document.querySelectorAll('.slideshow img');
+    const dots = document.querySelectorAll('.dot');
+    function showSlide(n) {{
+        imgs.forEach(img => img.classList.remove('active'));
+        dots.forEach(dot => dot.classList.remove('active'));
+        imgs[n].classList.add('active');
+        dots[n].classList.add('active');
+    }}
+    function nextSlide() {{
+        current = (current + 1) % imgs.length;
+        showSlide(current);
+    }}
+    showSlide(0);
+    setInterval(nextSlide, 2500); // AUTO GANTI TIAP 2.5 DETIK BRO!
+    </script>
+    </body>
+    </html>
+    """
+    components.html(slider_html, height=450)
+    st.caption(f"✨ Auto slide {len(b64_images)} foto - jalan tiap 2.5 detik (siap jual)")
 else:
-    st.warning(f"Upload {max_foto} foto di sidebar kiri (>>)")
-    st.image("https://images.unsplash.com/photo-1519741497674-611481863552?w=600", use_container_width=True)
+    st.image("https://images.unsplash.com/photo-1519741497674-611481863552?w=500", width=400)
+    st.caption("Upload 3 foto di sidebar biar jadi slide otomatis")
 
-st.markdown(f'<p class="main-title" style="font-size:42px">{nama1} & {nama2}</p>', unsafe_allow_html=True)
-st.markdown(f"<p style='text-align:center'>📅 {tgl.strftime('%d %B %Y')} • 📍 {lokasi}</p>", unsafe_allow_html=True)
+st.markdown(f'<p class="main-title" style="font-size:45px">{nama_pria} & {nama_wanita}</p>', unsafe_allow_html=True)
+st.markdown(f'<h3 style="text-align:center; color:#5a6d5a;">{tgl.strftime("%A, %d %B %Y")} • {jam.strftime("%H:%M")} WIB</h3>', unsafe_allow_html=True)
 
-selisih = datetime.combine(tgl, dt.time(9,0)) - datetime.now()
-if selisih.days >=0:
-    c1,c2 = st.columns(2)
-    c1.markdown(f'<div class="count-box"><b>{selisih.days}</b><br>HARI LAGI</div>', unsafe_allow_html=True)
-    c2.markdown(f'<div class="count-box"><b>{selisih.seconds//3600}</b><br>JAM LAGI</div>', unsafe_allow_html=True)
+# Countdown
+now = datetime.now()
+event_dt = datetime.combine(tgl, jam)
+selisih = event_dt - now
+if selisih.total_seconds() > 0:
+    c1,c2,c3,c4 = st.columns(4)
+    c1.markdown(f'<div class="count-box"><h2>{selisih.days}</h2>HARI</div>', unsafe_allow_html=True)
+    c2.markdown(f'<div class="count-box"><h2>{selisih.seconds//3600}</h2>JAM</div>', unsafe_allow_html=True)
+    c3.markdown(f'<div class="count-box"><h2>{(selisih.seconds%3600)//60}</h2>MENIT</div>', unsafe_allow_html=True)
+    c4.markdown(f'<div class="count-box"><h2>{selisih.seconds%60}</h2>DETIK</div>', unsafe_allow_html=True)
 
-st.write("---")
-st.subheader("📋 Konfirmasi Kehadiran")
-nama_tamu = st.text_input("Nama kamu:")
-hadir = st.radio("Kehadiran:", ["Hadir", "Tidak Hadir"], horizontal=True)
-col_a, col_b = st.columns(2)
-with col_a:
-    if st.button("✅ Simpan List", use_container_width=True):
-        if nama_tamu:
-            st.session_state.daftar_tamu.append(f"{nama_tamu} - {hadir}")
-            st.success(f"Makasih {nama_tamu}!")
-        else:
-            st.warning("Isi nama dulu")
-with col_b:
-    if nama_tamu:
-        wa_link = f"https://wa.me/{wa_client}?text=Halo%20{nama1}%20%26%20{nama2},%20saya%20{nama_tamu}%20konfirmasi%20{hadir}"
-        st.link_button(f"💬 WA ke {nama1}", wa_link, use_container_width=True)
-    else:
-        st.button("💬 WA ke Mempelai", disabled=True, use_container_width=True)
+if st.session_state.lagu_data:
+    st.audio(st.session_state.lagu_data, format='audio/mp3', autoplay=True)
 
-if st.session_state.daftar_tamu:
-    with st.expander(f"📖 Daftar Tamu ({len(st.session_state.daftar_tamu)}) - Khusus Mempelai"):
-        for t in st.session_state.daftar_tamu:
-            st.write("•", t)
-
-st.link_button("📍 Buka Google Maps", f"https://maps.google.com/?q={lokasi}", use_container_width=True)
-st.markdown(f"<p style='text-align:center; font-size:11px; margin-top:20px; color:gray'>Made with ❤️ by {brand_name}</p>", unsafe_allow_html=True)
 st.markdown('</div>', unsafe_allow_html=True)
+st.link_button("📍 Buka Maps", f"https://www.google.com/maps/search/{lokasi}", use_container_width=True)
