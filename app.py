@@ -168,4 +168,55 @@ html_code = f"""
   </div>
 
   <div class="sec maroon" style="border-top:1px solid #d4af8a">
-    <p style="font-family:'Great Vibes';font-size:32px">Men
+    <p style="font-family:'Great Vibes';font-size:32px">Menuju Hari Bahagia</p>
+    <div class="count-box" id="count">
+      <div class="count-item"><h2 id="d">46</h2><p style="font-size:10px">HARI</p></div>
+      <div class="count-item"><h2 id="h">20</h2><p style="font-size:10px">JAM</p></div>
+      <div class="count-item"><h2 id="m">09</h2><p style="font-size:10px">MENIT</p></div>
+      <div class="count-item"><h2 id="s">17</h2><p style="font-size:10px">DETIK</p></div>
+    </div>
+    <p style="font-size:12px;margin-top:15px">{tgl.strftime('%A, %d %B %Y')} • {jam.strftime('%H:%M')} WIB<br>{lokasi}</p>
+    <a href="{link_maps}" target="_blank" class="map-btn">📍 Lihat Lokasi (Shareloc)</a>
+    {f'<div style="margin-top:15px;border-radius:15px;overflow:hidden;border:3px solid #d4af8a"><iframe src="{embed_maps}" width="100%" height="200" style="border:0" loading="lazy"></iframe></div>' if embed_maps else ''}
+  </div>
+
+  <div class="sec cream">
+    <p style="font-family:'Great Vibes';font-size:36px;color:#d4af8a">Our Gallery</p>
+    <p style="font-size:11px;color:#8B5E3C;margin-bottom:10px">Auto Slide • Geser untuk lihat</p>
+    <div class="g-slider" id="gSlider">{gallery_html if gallery_list else '<div class="g-item"><img src="https://images.unsplash.com/photo-1519741497674-611481863552?w=400"></div><div class="g-item"><img src="https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=400"></div>'}</div>
+  </div>
+
+  <div class="sec maroon"><p style="font-size:10px;opacity:0.6">Made with ❤️ by RAYSHA WEDDING • {musik_label} • Auto Slide Aktif</p></div>
+</div>
+
+<div class="float-music" id="floatBtn" onclick="toggleM()">🎵</div>
+<audio id="aud" loop src="{musik_src}"></audio>
+
+<script>
+var cur=0; var play=false;
+function show(n){{ var imgs=document.querySelectorAll('#slide img'); imgs.forEach(i=>i.classList.remove('active')); if(imgs[n]) imgs[n].classList.add('active'); }}
+function next(){{ cur=(cur+1)%{len(cover_list)}; show(cur); }}
+var slideInt=setInterval(next, 3500);
+
+function buka(){{
+  document.getElementById('cover').classList.add('hide');
+  setTimeout(()=>{{document.getElementById('main').style.display='block'; window.scrollTo(0,0)}}, 900);
+  var a=document.getElementById('aud'); a.play().then(()=>{{play=true; document.getElementById('topBtn').innerHTML='⏸️ Pause'; document.getElementById('floatBtn').innerHTML='⏸️'; document.getElementById('floatBtn').classList.remove('paused');}}).catch(()=>{{}});
+  clearInterval(slideInt); slideInt=setInterval(next, 3500);
+  // Auto slide gallery juga
+  var g=document.getElementById('gSlider'); var gx=0; setInterval(()=>{{ gx+=280; if(gx>=g.scrollWidth) gx=0; g.scrollTo({{left:gx, behavior:'smooth'}}); }}, 4000);
+}}
+function toggleM(){{
+  var a=document.getElementById('aud'); var t=document.getElementById('topBtn'); var f=document.getElementById('floatBtn');
+  if(play){{a.pause(); t.innerHTML='▶️ Play'; f.innerHTML='🎵'; f.classList.add('paused'); play=false;}} else {{a.play(); t.innerHTML='⏸️ Pause'; f.innerHTML='⏸️'; f.classList.remove('paused'); play=true;}}
+}}
+// Countdown
+var target=new Date("{tgl} {jam}").getTime();
+setInterval(function(){{ var now=new Date().getTime(); var diff=target-now; if(diff>0){{ document.getElementById('d').innerHTML=Math.floor(diff/(1000*60*60*24)); document.getElementById('h').innerHTML=Math.floor((diff%(1000*60*60*24))/(1000*60*60)); document.getElementById('m').innerHTML=Math.floor((diff%(1000*60*60))/(1000*60)); document.getElementById('s').innerHTML=Math.floor((diff%(1000*60))/1000); }}}},1000);
+show(0);
+</script>
+</body></html>
+"""
+
+components.html(html_code, height=1000, scrolling=True)
+st.caption("✅ Musik di ATAS, Orang Tua sesuai keinginan, Shareloc aktif, Auto Slide pas client kirim ke tamu")
